@@ -1,0 +1,31 @@
+# Авто-деплой: при пуше в main подключаемся к серверу по SSH,
+# подтягиваем код и пересобираем/перезапускаем контейнер.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {} # позволяет запускать деплой вручную из вкладки Actions
+
+# Не запускать несколько деплоев одновременно.
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          script: |
+            set -e
+            cd ${{ secrets.PROJECT_PATH || '/opt/TgBratok' }}
+            git pull --ff-only
+            docker compose up --build -d
+            docker image prune -f

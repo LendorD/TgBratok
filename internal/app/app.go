@@ -41,7 +41,6 @@ func Run() error {
 		return err
 	}
 
-	// Внедрение зависимостей.
 	store := memory.New(cfg.HistoryLimit)
 	ai := openrouter.New(openRouterHTTP, openrouter.Options{
 		APIKey:         cfg.OpenRouterKey,
@@ -60,14 +59,11 @@ func Run() error {
 		"proxy_enabled", cfg.ProxyURL != "",
 	)
 
-	// Подключение к Telegram (getMe) — частая точка отказа при блокировке
-	// api.telegram.org. При таймауте настройте PROXY_URL или включите VPN.
 	bot, err := handlers.NewTelegram(cfg.TelegramToken, telegramHTTP, chat, logger)
 	if err != nil {
 		return fmt.Errorf("не удалось подключиться к Telegram (проверьте интернет, PROXY_URL или VPN): %w", err)
 	}
 
-	// Отмена контекста по SIGINT/SIGTERM для graceful shutdown.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 

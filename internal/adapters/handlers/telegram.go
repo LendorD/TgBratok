@@ -16,6 +16,7 @@ import (
 
 	"bratok/internal/domain/entities"
 	"bratok/internal/interfaces"
+	"bratok/pkg/utils"
 )
 
 // Telegram принимает обновления Telegram и направляет их в use case.
@@ -113,18 +114,68 @@ func (t *Telegram) handle(ctx context.Context, msg *tgbotapi.Message) {
 	t.send(chatID, reply, markup)
 }
 
-// send отправляет текстовый ответ (с опциональной клавиатурой), логируя ошибки.
+// telegramLimit — максимум символов в сообщении (запас от лимита 4096).
+const telegramLimit = 4000
+
+// send делит текст на части и отправляет; клавиатуру вешает на первую часть.
 func (t *Telegram) send(chatID int64, text string, markup interface{}) {
 	if text == "" {
 		return
 	}
-	msg := tgbotapi.NewMessage(chatID, text)
+	for i, chunk := range splitMessage(text, telegramLimit) {
+		var mk interface{}
+		if i == 0 {
+			mk = markup
+		}
+		t.sendOne(chatID, chunk, mk)
+	}
+}
+
+// sendOne шлёт часть как HTML, а при ошибке разметки — как обычный текст.
+func (t *Telegram) sendOne(chatID int64, text string, markup interface{}) {
+	msg := tgbotapi.NewMessage(chatID, utils.MarkdownToHTML(text))
+	msg.ParseMode = tgbotapi.ModeHTML
+	msg.DisableWebPagePreview = true
 	if markup != nil {
 		msg.ReplyMarkup = markup
 	}
 	if _, err := t.api.Send(msg); err != nil {
-		t.log.Error("failed to send message", "chat_id", chatID, "error", err)
+		t.log.Warn("html send failed, fallback to plain", "chat_id", chatID, "error", err)
+		plain := tgbotapi.NewMessage(chatID, text)
+		if markup != nil {
+			plain.ReplyMarkup = markup
+		}
+		if _, err := t.api.Send(plain); err != nil {
+			t.log.Error("failed to send message", "chat_id", chatID, "error", err)
+		}
 	}
+}
+
+// splitMessage делит текст на части не длиннее max по границам строк.
+func splitMessage(s string, max int) []string {
+	if len([]rune(s)) <= max {
+		return []string{s}
+	}
+	var (
+		chunks []string
+		b      strings.Builder
+		count  int
+	)
+	for _, line := range strings.Split(s, "\n") {
+		lineLen := len([]rune(line)) + 1
+		if count+lineLen > max && b.Len() > 0 {
+			chunks = append(chunks, strings.TrimRight(b.String(), "\n"))
+			b.Reset()
+			count = 0
+		}
+		b.WriteString(line)
+		b.WriteString("\n")
+		count += lineLen
+	}
+	if b.Len() > 0 {
+		chunks = append(chunks, strings.TrimRight(b.String(), "\n"))
+	}
+	return chunks
 }
 
 // roleKeyboard строит клавиатуру из предустановленных ролей (по 2 в ряд).
