@@ -48,7 +48,7 @@ func Load() (Config, error) {
 		OpenRouterReferer: os.Getenv("OPENROUTER_REFERER"),
 		OpenRouterTitle:   getEnv("OPENROUTER_TITLE", defaultTitle),
 		ProviderOrder:     splitCSV(os.Getenv("OPENROUTER_PROVIDER_ORDER")),
-		ProviderIgnore:    splitCSV(getEnv("OPENROUTER_IGNORE_PROVIDERS", "Azure")),
+		ProviderIgnore:    splitCSV(os.Getenv("OPENROUTER_IGNORE_PROVIDERS")),
 		ProxyURL:          os.Getenv("PROXY_URL"),
 	}
 

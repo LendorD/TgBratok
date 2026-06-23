@@ -172,7 +172,7 @@
 | `OPENROUTER_URL`       |  ❌   | `https://openrouter.ai/api/v1/chat/completions`   | Эндпоинт chat-completions                          |
 | `OPENROUTER_REFERER`   |  ❌   | —                                                 | Заголовок `HTTP-Referer` (атрибуция)              |
 | `OPENROUTER_TITLE`     |  ❌   | `Bratok Bot`                                       | Заголовок `X-Title` (атрибуция)                   |
-| `OPENROUTER_IGNORE_PROVIDERS` | ❌ | `Azure`                                       | Провайдеры, которые не использовать (через запятую). Azure режет контент |
+| `OPENROUTER_IGNORE_PROVIDERS` | ❌ | —                                             | Провайдеры, которые не использовать (через запятую). Напр. `Azure` (если в privacy-настройках разрешены другие) |
 | `OPENROUTER_PROVIDER_ORDER` | ❌ | —                                             | Приоритетный порядок провайдеров (через запятую)  |
 | `PROXY_URL`            |  ❌   | —                                                 | Прокси `http`/`https`/`socks5` для Telegram и OpenRouter |
 | `HISTORY_LIMIT`        |  ❌   | `20`                                              | Сколько последних сообщений держать в контексте   |
