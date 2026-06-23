@@ -1,0 +1,14 @@
+services:
+  bot:
+    build: .
+    container_name: bratok-bot
+    # Подгружает TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY и т.д. из файла .env.
+    env_file:
+      - .env
+    # Бот делает только исходящие запросы (long polling), порты не нужны.
+    restart: unless-stopped
+    # Позволяет обращаться к прокси, запущенному на хосте, по адресу
+    # host.docker.internal. Например, если прокси слушает на 127.0.0.1:1080
+    # хоста, в .env укажите: PROXY_URL=socks5://host.docker.internal:1080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

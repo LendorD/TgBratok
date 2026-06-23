@@ -1,0 +1,16 @@
+# Secrets / local config
+.env
+
+# Build artifacts
+/bot
+/bin/
+*.exe
+
+# Go test/coverage output
+*.out
+coverage.*
+
+# Editor/OS noise
+.idea/
+.vscode/
+.DS_Store
