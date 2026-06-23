@@ -76,7 +76,7 @@ func TestSendMessage_BuildsContextAndStoresTurns(t *testing.T) {
 	history.On("LastN", ctx, chatID, 20).Return(prev, nil)
 
 	expected := []entities.Message{
-		{Role: entities.RoleSystem, Content: "SYS"},
+		{Role: entities.RoleSystem, Content: entities.BuildSystemPrompt("SYS")},
 		{Role: entities.RoleUser, Content: "hi"},
 		{Role: entities.RoleAssistant, Content: "hello"},
 		{Role: entities.RoleUser, Content: "how are you"},

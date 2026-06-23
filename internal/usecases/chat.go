@@ -137,7 +137,7 @@ func (uc *ChatUseCase) SendMessage(ctx context.Context, chatID int64, text strin
 	}
 
 	messages := make([]entities.Message, 0, len(history)+2)
-	messages = append(messages, entities.Message{Role: entities.RoleSystem, Content: u.Role})
+	messages = append(messages, entities.Message{Role: entities.RoleSystem, Content: entities.BuildSystemPrompt(u.Role)})
 	messages = append(messages, history...)
 	userMsg := entities.Message{Role: entities.RoleUser, Content: text}
 	messages = append(messages, userMsg)
