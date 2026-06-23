@@ -4,6 +4,7 @@ package usecases
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -143,6 +144,10 @@ func (uc *ChatUseCase) SendMessage(ctx context.Context, chatID int64, text strin
 
 	answer, err := uc.ai.Complete(ctx, messages)
 	if err != nil {
+		// Фильтр контента провайдера — это не сбой бота, отвечаем понятно.
+		if errors.Is(err, interfaces.ErrContentFiltered) {
+			return "Запрос отклонён фильтром контента провайдера. Попробуй переформулировать сообщение.", nil
+		}
 		return "", fmt.Errorf("send message: ai complete: %w", err)
 	}
 	assistantMsg := entities.Message{Role: entities.RoleAssistant, Content: answer}
@@ -157,18 +162,11 @@ func (uc *ChatUseCase) SendMessage(ctx context.Context, chatID int64, text strin
 	return answer, nil
 }
 
-// roleMenuText строит меню команды /role из предустановленных ролей.
+// roleMenuText — подсказка для команды /role (сами роли показываются кнопками).
 func roleMenuText() string {
-	var b strings.Builder
-	b.WriteString("Выбери роль — просто отправь её название следующим сообщением:\n\n")
-	for _, r := range entities.PredefinedRoles {
-		b.WriteString("• ")
-		b.WriteString(r.Name)
-		b.WriteString("\n")
-	}
-	b.WriteString("\nИли придумай свою: опиши, кем мне быть (например, «Ты — строгий редактор, " +
-		"который правит тексты»).\n\nПри смене роли история диалога очищается.")
-	return b.String()
+	return "Выбери роль кнопкой ниже 👇 или опиши свою текстом " +
+		"(например: «Ты — строгий редактор, который правит тексты»).\n\n" +
+		"При смене роли история диалога очищается."
 }
 
 // roleLabel возвращает короткую метку роли: имя предустановленной либо обрезанный

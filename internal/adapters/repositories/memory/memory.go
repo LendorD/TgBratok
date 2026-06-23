@@ -44,6 +44,7 @@ func (s *Store) stateLocked(chatID int64) *userState {
 	return st
 }
 
+// Get возвращает состояние чата; для неизвестного — User с пустой ролью.
 func (s *Store) Get(_ context.Context, chatID int64) (entities.User, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

@@ -44,11 +44,13 @@ func Run() error {
 	// Внедрение зависимостей.
 	store := memory.New(cfg.HistoryLimit)
 	ai := openrouter.New(openRouterHTTP, openrouter.Options{
-		APIKey:  cfg.OpenRouterKey,
-		Model:   cfg.OpenRouterModel,
-		URL:     cfg.OpenRouterURL,
-		Referer: cfg.OpenRouterReferer,
-		Title:   cfg.OpenRouterTitle,
+		APIKey:         cfg.OpenRouterKey,
+		Model:          cfg.OpenRouterModel,
+		URL:            cfg.OpenRouterURL,
+		Referer:        cfg.OpenRouterReferer,
+		Title:          cfg.OpenRouterTitle,
+		ProviderOrder:  cfg.ProviderOrder,
+		ProviderIgnore: cfg.ProviderIgnore,
 	}, logger)
 	chat := usecases.NewChatUseCase(store, store, ai, cfg.HistoryLimit, logger)
 
@@ -72,6 +74,7 @@ func Run() error {
 	return bot.Run(ctx)
 }
 
+// newLogger строит JSON-логгер slog в stdout на заданном уровне.
 func newLogger(level slog.Level) *slog.Logger {
 	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
 }

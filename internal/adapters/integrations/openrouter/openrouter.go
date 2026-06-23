@@ -20,11 +20,13 @@ var _ interfaces.AIClient = (*Client)(nil)
 
 // Options — настройки клиента (передаются явно, без зависимости от config).
 type Options struct {
-	APIKey  string
-	Model   string
-	URL     string
-	Referer string // заголовок HTTP-Referer (атрибуция OpenRouter)
-	Title   string // заголовок X-Title (атрибуция OpenRouter)
+	APIKey         string
+	Model          string
+	URL            string
+	Referer        string   // заголовок HTTP-Referer (атрибуция OpenRouter)
+	Title          string   // заголовок X-Title (атрибуция OpenRouter)
+	ProviderOrder  []string // приоритетный порядок провайдеров OpenRouter
+	ProviderIgnore []string // провайдеры, которые не использовать (например, Azure)
 }
 
 // Client общается с эндпоинтом chat-completions OpenRouter.
@@ -44,9 +46,16 @@ type chatMessage struct {
 	Content string `json:"content"`
 }
 
+// providerPrefs — маршрутизация провайдеров OpenRouter.
+type providerPrefs struct {
+	Order  []string `json:"order,omitempty"`
+	Ignore []string `json:"ignore,omitempty"`
+}
+
 type chatRequest struct {
-	Model    string        `json:"model"`
-	Messages []chatMessage `json:"messages"`
+	Model    string         `json:"model"`
+	Messages []chatMessage  `json:"messages"`
+	Provider *providerPrefs `json:"provider,omitempty"`
 }
 
 type chatResponse struct {
@@ -61,6 +70,9 @@ type chatResponse struct {
 // Complete отправляет сообщения модели и возвращает ответ ассистента.
 func (c *Client) Complete(ctx context.Context, messages []entities.Message) (string, error) {
 	payload := chatRequest{Model: c.opts.Model, Messages: toWire(messages)}
+	if len(c.opts.ProviderOrder) > 0 || len(c.opts.ProviderIgnore) > 0 {
+		payload.Provider = &providerPrefs{Order: c.opts.ProviderOrder, Ignore: c.opts.ProviderIgnore}
+	}
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return "", fmt.Errorf("openrouter: marshal request: %w", err)
@@ -90,6 +102,10 @@ func (c *Client) Complete(ctx context.Context, messages []entities.Message) (str
 		return "", fmt.Errorf("openrouter: read response: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		// Провайдер (часто Azure) мог отклонить запрос своим фильтром контента.
+		if bytes.Contains(data, []byte("content_filter")) {
+			return "", fmt.Errorf("openrouter: %w", interfaces.ErrContentFiltered)
+		}
 		return "", fmt.Errorf("openrouter: unexpected status %d: %s", resp.StatusCode, truncate(string(data), 500))
 	}
 
@@ -112,6 +128,7 @@ func (c *Client) Complete(ctx context.Context, messages []entities.Message) (str
 	return answer, nil
 }
 
+// toWire преобразует доменные сообщения в формат API.
 func toWire(messages []entities.Message) []chatMessage {
 	out := make([]chatMessage, len(messages))
 	for i, m := range messages {

@@ -1,8 +1,8 @@
-// Package handlers — транспортный слой. Принимает обновления Telegram и
+// Package handlers — транспортный слой: принимает обновления Telegram и
 // вызывает use case через интерфейс ChatUsecase.
 //
-// Библиотека go-telegram-bot-api/v5 выбрана как зрелая и без внешних
-// зависимостей; long polling делает бота «только исходящим».
+// Библиотека go-telegram-bot-api/v5 — зрелая, без внешних зависимостей;
+// long polling делает бота «только исходящим».
 package handlers
 
 import (
@@ -14,6 +14,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
+	"bratok/internal/domain/entities"
 	"bratok/internal/interfaces"
 )
 
@@ -33,8 +34,7 @@ func NewTelegram(token string, httpClient *http.Client, uc interfaces.ChatUsecas
 	return &Telegram{api: api, uc: uc, log: log}, nil
 }
 
-// Run запускает long polling и блокируется до отмены ctx, корректно завершая
-// обработчики (graceful shutdown).
+// Run запускает long polling и блокируется до отмены ctx (graceful shutdown).
 func (t *Telegram) Run(ctx context.Context) error {
 	cfg := tgbotapi.NewUpdate(0)
 	cfg.Timeout = 30
@@ -82,8 +82,9 @@ func (t *Telegram) handle(ctx context.Context, msg *tgbotapi.Message) {
 	chatID := msg.Chat.ID
 
 	var (
-		reply string
-		err   error
+		reply  string
+		err    error
+		markup interface{} // клавиатура, если нужна (для /role)
 	)
 	switch {
 	case msg.IsCommand():
@@ -92,12 +93,14 @@ func (t *Telegram) handle(ctx context.Context, msg *tgbotapi.Message) {
 			reply, err = t.uc.Start(ctx, chatID)
 		case "role":
 			reply, err = t.uc.RequestRole(ctx, chatID)
+			markup = roleKeyboard()
 		default:
 			reply = "Не знаю такую команду. Доступны: /start и /role."
 		}
 	case strings.TrimSpace(msg.Text) == "":
 		reply = "Я понимаю только текст. Напиши, пожалуйста, сообщение словами."
 	default:
+		// Индикатор «печатает», пока модель думает (best-effort).
 		_, _ = t.api.Request(tgbotapi.NewChatAction(chatID, tgbotapi.ChatTyping))
 		reply, err = t.uc.HandleMessage(ctx, chatID, msg.Text)
 	}
@@ -105,17 +108,39 @@ func (t *Telegram) handle(ctx context.Context, msg *tgbotapi.Message) {
 	if err != nil {
 		t.log.Error("failed to handle update", "chat_id", chatID, "error", err)
 		reply = "Упс, что-то пошло не так. Попробуй, пожалуйста, ещё раз чуть позже."
+		markup = nil
 	}
-
-	t.send(chatID, reply)
+	t.send(chatID, reply, markup)
 }
 
-// send отправляет текстовый ответ, логируя ошибки отправки.
-func (t *Telegram) send(chatID int64, text string) {
+// send отправляет текстовый ответ (с опциональной клавиатурой), логируя ошибки.
+func (t *Telegram) send(chatID int64, text string, markup interface{}) {
 	if text == "" {
 		return
 	}
-	if _, err := t.api.Send(tgbotapi.NewMessage(chatID, text)); err != nil {
+	msg := tgbotapi.NewMessage(chatID, text)
+	if markup != nil {
+		msg.ReplyMarkup = markup
+	}
+	if _, err := t.api.Send(msg); err != nil {
 		t.log.Error("failed to send message", "chat_id", chatID, "error", err)
 	}
+}
+
+// roleKeyboard строит клавиатуру из предустановленных ролей (по 2 в ряд).
+// Нажатие на кнопку отправляет название роли как обычное сообщение.
+func roleKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	var rows [][]tgbotapi.KeyboardButton
+	var row []tgbotapi.KeyboardButton
+	for i, r := range entities.PredefinedRoles {
+		row = append(row, tgbotapi.NewKeyboardButton(r.Name))
+		if len(row) == 2 || i == len(entities.PredefinedRoles)-1 {
+			rows = append(rows, row)
+			row = nil
+		}
+	}
+	kb := tgbotapi.NewReplyKeyboard(rows...)
+	kb.ResizeKeyboard = true
+	kb.OneTimeKeyboard = true
+	return kb
 }

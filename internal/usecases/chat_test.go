@@ -52,6 +52,7 @@ func (m *mockAI) Complete(ctx context.Context, messages []entities.Message) (str
 	return args.String(0), args.Error(1)
 }
 
+// newUC собирает use case с моками и логгером в /dev/null.
 func newUC(u *mockUsers, h *mockHistory, ai *mockAI, limit int) *ChatUseCase {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	return NewChatUseCase(u, h, ai, limit, logger)

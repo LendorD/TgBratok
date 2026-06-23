@@ -27,6 +27,8 @@ type Config struct {
 	OpenRouterURL     string        // эндпоинт chat-completions
 	OpenRouterReferer string        // заголовок HTTP-Referer (атрибуция)
 	OpenRouterTitle   string        // заголовок X-Title (атрибуция)
+	ProviderOrder     []string      // приоритетный порядок провайдеров OpenRouter
+	ProviderIgnore    []string      // провайдеры, которые не использовать
 	ProxyURL          string        // прокси для Telegram и OpenRouter (опц.)
 	HistoryLimit      int           // глубина истории диалога
 	RequestTimeout    time.Duration // таймаут запроса к OpenRouter
@@ -45,6 +47,8 @@ func Load() (Config, error) {
 		OpenRouterURL:     getEnv("OPENROUTER_URL", defaultURL),
 		OpenRouterReferer: os.Getenv("OPENROUTER_REFERER"),
 		OpenRouterTitle:   getEnv("OPENROUTER_TITLE", defaultTitle),
+		ProviderOrder:     splitCSV(os.Getenv("OPENROUTER_PROVIDER_ORDER")),
+		ProviderIgnore:    splitCSV(getEnv("OPENROUTER_IGNORE_PROVIDERS", "Azure")),
 		ProxyURL:          os.Getenv("PROXY_URL"),
 	}
 
@@ -74,6 +78,22 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
+// splitCSV разбивает строку «a, b, c» на срез без пустых элементов.
+func splitCSV(s string) []string {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if v := strings.TrimSpace(p); v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+// getEnv возвращает значение переменной или fallback, если она не задана.
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
@@ -81,6 +101,7 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
+// getEnvInt парсит целочисленную переменную, применяя fallback при отсутствии.
 func getEnvInt(key string, fallback int) (int, error) {
 	raw := os.Getenv(key)
 	if raw == "" {
@@ -93,6 +114,7 @@ func getEnvInt(key string, fallback int) (int, error) {
 	return v, nil
 }
 
+// getEnvDuration парсит длительность Go (например, "60s"), иначе fallback.
 func getEnvDuration(key string, fallback time.Duration) (time.Duration, error) {
 	raw := os.Getenv(key)
 	if raw == "" {
@@ -105,6 +127,7 @@ func getEnvDuration(key string, fallback time.Duration) (time.Duration, error) {
 	return v, nil
 }
 
+// parseLogLevel сопоставляет имя уровня со slog.Level (по умолчанию Info).
 func parseLogLevel(raw string) slog.Level {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
 	case "debug":
