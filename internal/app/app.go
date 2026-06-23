@@ -50,6 +50,7 @@ func Run() error {
 		Title:          cfg.OpenRouterTitle,
 		ProviderOrder:  cfg.ProviderOrder,
 		ProviderIgnore: cfg.ProviderIgnore,
+		Temperature:    cfg.Temperature,
 	}, logger)
 	chat := usecases.NewChatUseCase(store, store, ai, cfg.HistoryLimit, logger)
 

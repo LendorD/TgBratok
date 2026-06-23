@@ -27,6 +27,7 @@ type Options struct {
 	Title          string   // заголовок X-Title (атрибуция OpenRouter)
 	ProviderOrder  []string // приоритетный порядок провайдеров OpenRouter
 	ProviderIgnore []string // провайдеры, которые не использовать (например, Azure)
+	Temperature    float64  // «температура» генерации
 }
 
 // Client общается с эндпоинтом chat-completions OpenRouter.
@@ -53,9 +54,10 @@ type providerPrefs struct {
 }
 
 type chatRequest struct {
-	Model    string         `json:"model"`
-	Messages []chatMessage  `json:"messages"`
-	Provider *providerPrefs `json:"provider,omitempty"`
+	Model       string         `json:"model"`
+	Messages    []chatMessage  `json:"messages"`
+	Temperature float64        `json:"temperature"`
+	Provider    *providerPrefs `json:"provider,omitempty"`
 }
 
 type chatResponse struct {
@@ -69,7 +71,7 @@ type chatResponse struct {
 
 // Complete отправляет сообщения модели и возвращает ответ ассистента.
 func (c *Client) Complete(ctx context.Context, messages []entities.Message) (string, error) {
-	payload := chatRequest{Model: c.opts.Model, Messages: toWire(messages)}
+	payload := chatRequest{Model: c.opts.Model, Messages: toWire(messages), Temperature: c.opts.Temperature}
 	if len(c.opts.ProviderOrder) > 0 || len(c.opts.ProviderIgnore) > 0 {
 		payload.Provider = &providerPrefs{Order: c.opts.ProviderOrder, Ignore: c.opts.ProviderIgnore}
 	}

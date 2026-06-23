@@ -18,6 +18,7 @@ const (
 	defaultTitle          = "Bratok Bot"
 	defaultHistoryLimit   = 20
 	defaultRequestTimeout = 60 * time.Second
+	defaultTemperature    = 0.8
 )
 
 // Config — все настройки бота времени выполнения.
@@ -30,6 +31,7 @@ type Config struct {
 	OpenRouterTitle   string        // заголовок X-Title (атрибуция)
 	ProviderOrder     []string      // приоритетный порядок провайдеров OpenRouter
 	ProviderIgnore    []string      // провайдеры, которые не использовать
+	Temperature       float64       // «температура» генерации (выше = живее/креативнее)
 	ProxyURL          string        // прокси для Telegram и OpenRouter (опц.)
 	HistoryLimit      int           // глубина истории диалога
 	RequestTimeout    time.Duration // таймаут запроса к OpenRouter
@@ -75,6 +77,12 @@ func Load() (Config, error) {
 	}
 	cfg.RequestTimeout = timeout
 
+	temp, err := getEnvFloat("OPENROUTER_TEMPERATURE", defaultTemperature)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.Temperature = temp
+
 	cfg.LogLevel = parseLogLevel(getEnv("LOG_LEVEL", "info"))
 	return cfg, nil
 }
@@ -109,6 +117,19 @@ func getEnvInt(key string, fallback int) (int, error) {
 		return fallback, nil
 	}
 	v, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, fmt.Errorf("invalid %s: %w", key, err)
+	}
+	return v, nil
+}
+
+// getEnvFloat парсит дробное число, применяя fallback при отсутствии.
+func getEnvFloat(key string, fallback float64) (float64, error) {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return fallback, nil
+	}
+	v, err := strconv.ParseFloat(raw, 64)
 	if err != nil {
 		return 0, fmt.Errorf("invalid %s: %w", key, err)
 	}
