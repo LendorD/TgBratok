@@ -183,7 +183,7 @@
 
 ## 🚀 Запуск локально
 
-Требуется **Go 1.22+**.
+Требуется **Go 1.24+**.
 
 ```bash
 # 1. Подготовить конфиг
@@ -276,7 +276,7 @@ go test ./...
 
 ## 🛠 Технологии
 
-- **Go 1.22+**, стандартный `log/slog` (структурированное логирование).
+- **Go 1.24+**, стандартный `log/slog` (структурированное логирование).
 - **Telegram:** [`go-telegram-bot-api/v5`](https://github.com/go-telegram-bot-api/telegram-bot-api) — зрелая библиотека без внешних зависимостей.
 - **AI:** [OpenRouter](https://openrouter.ai) chat-completions API.
 - **Тесты:** [`testify`](https://github.com/stretchr/testify).
