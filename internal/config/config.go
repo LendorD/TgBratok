@@ -1,4 +1,3 @@
-// Package config читает и валидирует конфигурацию из окружения в одном месте.
 package config
 
 import (

@@ -1,8 +1,3 @@
-// Package handlers — транспортный слой: принимает обновления Telegram и
-// вызывает use case через интерфейс ChatUsecase.
-//
-// Библиотека go-telegram-bot-api/v5 — зрелая, без внешних зависимостей;
-// long polling делает бота «только исходящим».
 package handlers
 
 import (

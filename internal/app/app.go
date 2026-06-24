@@ -1,5 +1,3 @@
-// Package app — composition root: загружает конфиг, собирает зависимости и
-// запускает бота с graceful shutdown.
 package app
 
 import (

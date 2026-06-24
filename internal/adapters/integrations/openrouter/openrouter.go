@@ -1,5 +1,3 @@
-// Package openrouter реализует порт AIClient поверх API chat-completions
-// OpenRouter.
 package openrouter
 
 import (

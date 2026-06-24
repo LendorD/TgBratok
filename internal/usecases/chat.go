@@ -1,5 +1,3 @@
-// Package usecases содержит бизнес-логику бота, не зависящую от транспорта,
-// HTTP и конкретного хранилища.
 package usecases
 
 import (
